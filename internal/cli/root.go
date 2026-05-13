@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"crypto/x509"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -68,11 +70,34 @@ func newSession(ctx context.Context, repoFlag string) (*session, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, err := gitbucket.New(cfg.URL, cfg.Token, gitbucket.WithUserAgent("gb/"+version))
+	opts := []gitbucket.Option{gitbucket.WithUserAgent("gb/" + version)}
+	if cfg.CACert != "" {
+		pool, err := loadCAPool(cfg.CACert)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, gitbucket.WithRootCAs(pool))
+	}
+	c, err := gitbucket.New(cfg.URL, cfg.Token, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return &session{cfg: cfg, client: c, owner: owner, repo: name}, nil
+}
+
+func loadCAPool(path string) (*x509.CertPool, error) {
+	pem, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read ca_cert %q: %w", path, err)
+	}
+	pool, err := x509.SystemCertPool()
+	if err != nil || pool == nil {
+		pool = x509.NewCertPool()
+	}
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("ca_cert %q contains no PEM certificates", path)
+	}
+	return pool, nil
 }
 
 // runGit executes git and returns stdout. Used by repo.Resolve.

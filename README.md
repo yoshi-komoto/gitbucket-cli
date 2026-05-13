@@ -13,13 +13,17 @@ go install github.com/yoshi-komoto/gitbucket-cli/cmd/gb@latest
 `~/.config/gitbucket/config.yaml` を作成:
 
 ```yaml
-url: https://gitbucket.example.com
+url: https://gitbucket.example.com   # GitBucket のルート (context path まで、リポ URL ではない)
 token: <Personal Access Token>
+# 社内 CA など、システム信頼ストアに無い証明書のサーバーに繋ぐ場合のみ:
+# ca_cert: ./ca.pem                  # 相対パスは ~/.config/gitbucket/ からの相対
 ```
 
 PAT は GitBucket の **Account Settings → Applications → Personal access tokens** で発行する。
 
-環境変数 `GITBUCKET_URL` と `GITBUCKET_TOKEN` を両方指定すれば config ファイルを無視してそちらを使う (CI 用)。
+環境変数で上書き可能 (CI 用):
+- `GITBUCKET_URL` / `GITBUCKET_TOKEN`: 両方セットされていれば config ファイルを無視
+- `GITBUCKET_CA_CERT`: 信頼する CA 証明書 (PEM) のパス。file の `ca_cert` を上書き
 
 ## Usage
 

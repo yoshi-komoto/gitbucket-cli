@@ -13,14 +13,24 @@ import (
 var ErrNotConfigured = errors.New("not configured")
 
 type Config struct {
-	URL   string `yaml:"url"`
-	Token string `yaml:"token"`
+	URL    string `yaml:"url"`
+	Token  string `yaml:"token"`
+	CACert string `yaml:"ca_cert,omitempty"`
 }
 
 func Load(homeDir string) (*Config, error) {
-	if envURL, envTok := os.Getenv("GITBUCKET_URL"), os.Getenv("GITBUCKET_TOKEN"); envURL != "" && envTok != "" {
-		return &Config{URL: normalizeURL(envURL), Token: envTok}, nil
+	envURL := os.Getenv("GITBUCKET_URL")
+	envTok := os.Getenv("GITBUCKET_TOKEN")
+	envCA := os.Getenv("GITBUCKET_CA_CERT")
+
+	if envURL != "" && envTok != "" {
+		return &Config{
+			URL:    normalizeURL(envURL),
+			Token:  envTok,
+			CACert: envCA,
+		}, nil
 	}
+
 	path := filepath.Join(homeDir, ".config", "gitbucket", "config.yaml")
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -37,6 +47,12 @@ func Load(homeDir string) (*Config, error) {
 		return nil, fmt.Errorf("%w: url or token is missing in %s", ErrNotConfigured, path)
 	}
 	cfg.URL = normalizeURL(cfg.URL)
+	if cfg.CACert != "" && !filepath.IsAbs(cfg.CACert) {
+		cfg.CACert = filepath.Join(filepath.Dir(path), cfg.CACert)
+	}
+	if envCA != "" {
+		cfg.CACert = envCA
+	}
 	return &cfg, nil
 }
 

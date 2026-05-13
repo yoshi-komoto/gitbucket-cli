@@ -81,3 +81,36 @@ func TestLoad_EnvOnlyPartial(t *testing.T) {
 		t.Errorf("err = %v", err)
 	}
 }
+
+func TestLoad_CACertRelativeToConfigDir(t *testing.T) {
+	home := t.TempDir()
+	writeConfig(t, home, "url: https://x.example\ntoken: T\nca_cert: my-ca.pem\n")
+	t.Setenv("GITBUCKET_URL", "")
+	t.Setenv("GITBUCKET_TOKEN", "")
+	t.Setenv("GITBUCKET_CA_CERT", "")
+
+	cfg, err := Load(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(home, ".config", "gitbucket", "my-ca.pem")
+	if cfg.CACert != want {
+		t.Errorf("CACert = %q, want %q", cfg.CACert, want)
+	}
+}
+
+func TestLoad_CACertEnvOverride(t *testing.T) {
+	home := t.TempDir()
+	writeConfig(t, home, "url: https://x.example\ntoken: T\nca_cert: file-ca.pem\n")
+	t.Setenv("GITBUCKET_URL", "")
+	t.Setenv("GITBUCKET_TOKEN", "")
+	t.Setenv("GITBUCKET_CA_CERT", "/tmp/env-ca.pem")
+
+	cfg, err := Load(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.CACert != "/tmp/env-ca.pem" {
+		t.Errorf("CACert = %q", cfg.CACert)
+	}
+}

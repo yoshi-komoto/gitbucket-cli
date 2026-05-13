@@ -2,6 +2,7 @@ package gitbucket
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"io"
@@ -133,6 +134,44 @@ func TestClient_DoErrorWithoutJSON(t *testing.T) {
 	}
 	if apiErr.Message != "" {
 		t.Errorf("msg should be empty, got %q", apiErr.Message)
+	}
+}
+
+func TestWithRootCAs_TrustsCustomCA(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	pool := x509.NewCertPool()
+	pool.AddCert(srv.Certificate())
+
+	c, err := New(srv.URL, "T", WithRootCAs(pool))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out map[string]bool
+	if err := c.do(context.Background(), http.MethodGet, "x", nil, nil, &out); err != nil {
+		t.Fatalf("do: %v", err)
+	}
+	if !out["ok"] {
+		t.Errorf("out = %v", out)
+	}
+}
+
+func TestWithoutRootCAs_RejectsUntrustedCert(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c, _ := New(srv.URL, "T")
+	err := c.do(context.Background(), http.MethodGet, "x", nil, nil, nil)
+	if err == nil {
+		t.Fatal("expected TLS verification failure without custom CA")
+	}
+	if !strings.Contains(err.Error(), "x509") && !strings.Contains(err.Error(), "certificate") {
+		t.Errorf("expected x509/certificate error, got %v", err)
 	}
 }
 

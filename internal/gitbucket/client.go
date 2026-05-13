@@ -3,6 +3,8 @@ package gitbucket
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,12 +19,14 @@ type Client struct {
 	httpClient *http.Client
 	token      string
 	userAgent  string
+	rootCAs    *x509.CertPool
 }
 
 type Option func(*Client)
 
-func WithHTTPClient(h *http.Client) Option { return func(c *Client) { c.httpClient = h } }
-func WithUserAgent(ua string) Option       { return func(c *Client) { c.userAgent = ua } }
+func WithHTTPClient(h *http.Client) Option         { return func(c *Client) { c.httpClient = h } }
+func WithUserAgent(ua string) Option               { return func(c *Client) { c.userAgent = ua } }
+func WithRootCAs(pool *x509.CertPool) Option       { return func(c *Client) { c.rootCAs = pool } }
 
 func New(baseURL, token string, opts ...Option) (*Client, error) {
 	if baseURL == "" {
@@ -47,6 +51,21 @@ func New(baseURL, token string, opts ...Option) (*Client, error) {
 	}
 	for _, opt := range opts {
 		opt(c)
+	}
+	if c.rootCAs != nil {
+		tr, ok := c.httpClient.Transport.(*http.Transport)
+		if !ok || tr == nil {
+			tr = http.DefaultTransport.(*http.Transport).Clone()
+		} else {
+			tr = tr.Clone()
+		}
+		if tr.TLSClientConfig == nil {
+			tr.TLSClientConfig = &tls.Config{}
+		} else {
+			tr.TLSClientConfig = tr.TLSClientConfig.Clone()
+		}
+		tr.TLSClientConfig.RootCAs = c.rootCAs
+		c.httpClient.Transport = tr
 	}
 	return c, nil
 }
