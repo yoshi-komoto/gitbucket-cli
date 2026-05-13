@@ -76,3 +76,28 @@ func TestResolve_InvalidRemote(t *testing.T) {
 		t.Errorf("err = %v, want ErrRepoNotDetermined", err)
 	}
 }
+
+func TestResolve_GitBucketContextPath(t *testing.T) {
+	// GitBucket prepends `/git/` to clone URLs and can also live under a context path
+	owner, name, err := Resolve(context.Background(), "", func(ctx context.Context, args ...string) (string, error) {
+		return "https://52.197.174.162/gitbucket/git/root/web.git", nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if owner != "root" || name != "web" {
+		t.Errorf("owner=%q name=%q", owner, name)
+	}
+}
+
+func TestResolve_SSHWithDeepPath(t *testing.T) {
+	owner, name, err := Resolve(context.Background(), "", func(ctx context.Context, args ...string) (string, error) {
+		return "ssh://git@host:29418/gitbucket/git/root/web.git", nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if owner != "root" || name != "web" {
+		t.Errorf("owner=%q name=%q", owner, name)
+	}
+}
