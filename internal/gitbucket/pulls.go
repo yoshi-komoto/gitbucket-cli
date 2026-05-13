@@ -33,3 +33,18 @@ func (c *Client) ListPulls(ctx context.Context, owner, repo string, opt PullsLis
 	}
 	return out, nil
 }
+
+func (c *Client) GetPull(ctx context.Context, owner, repo string, number int) (*PullRequest, error) {
+	if owner == "" || repo == "" {
+		return nil, fmt.Errorf("owner and repo are required")
+	}
+	if number <= 0 {
+		return nil, fmt.Errorf("number must be > 0")
+	}
+	path := fmt.Sprintf("repos/%s/%s/pulls/%d", owner, repo, number)
+	var out PullRequest
+	if err := c.do(ctx, http.MethodGet, path, nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

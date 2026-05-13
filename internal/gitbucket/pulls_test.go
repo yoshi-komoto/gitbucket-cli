@@ -56,3 +56,23 @@ func TestListPulls_DefaultState(t *testing.T) {
 		t.Errorf("default state = %q, want open", gotState)
 	}
 }
+
+func TestGetPull(t *testing.T) {
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_ = json.NewEncoder(w).Encode(PullRequest{Number: 12, Title: "feat", State: "open"})
+	}))
+	defer srv.Close()
+	c, _ := New(srv.URL, "T")
+	pr, err := c.GetPull(context.Background(), "o", "r", 12)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/api/v3/repos/o/r/pulls/12" {
+		t.Errorf("path = %q", gotPath)
+	}
+	if pr.Number != 12 || pr.Title != "feat" {
+		t.Errorf("pr = %+v", pr)
+	}
+}
