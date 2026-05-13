@@ -1,4 +1,4 @@
-package gb
+package cli
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 	"github.com/yoshi-komoto/gitbucket-cli/internal/output"
 )
 
-var prCommentListCmd = &cobra.Command{
-	Use:   "list <number>",
-	Short: "List comments on a pull request",
+var prViewCmd = &cobra.Command{
+	Use:   "view <number>",
+	Short: "View a pull request",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		n, err := strconv.Atoi(args[0])
@@ -22,14 +22,14 @@ var prCommentListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		cs, err := s.client.ListIssueComments(cmd.Context(), s.owner, s.repo, n)
+		pr, err := s.client.GetPull(cmd.Context(), s.owner, s.repo, n)
 		if err != nil {
 			return err
 		}
-		return output.RenderCommentList(os.Stdout, flags.output, cs)
+		return output.RenderPullView(os.Stdout, flags.output, pr)
 	},
 }
 
 func init() {
-	prCommentCmd.AddCommand(prCommentListCmd)
+	prCmd.AddCommand(prViewCmd)
 }

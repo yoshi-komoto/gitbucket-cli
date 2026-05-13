@@ -5,7 +5,7 @@ GitBucket の Pull Request 関連 API を呼ぶ Go 製 CLI。GitHub の `gh` ラ
 ## Install
 
 ```sh
-go install github.com/yoshi-komoto/gitbucket-cli@latest
+go install github.com/yoshi-komoto/gitbucket-cli/cmd/gb@latest
 ```
 
 ## Configure

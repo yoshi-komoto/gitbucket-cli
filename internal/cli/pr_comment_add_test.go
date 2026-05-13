@@ -1,4 +1,4 @@
-package gb
+package cli
 
 import (
 	"errors"
